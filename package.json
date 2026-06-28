@@ -1,0 +1,15 @@
+{
+  "name": "veriflow-ai",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.9.0",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "dev:web": "pnpm --filter @veriflow/web dev",
+    "build:web": "pnpm --filter @veriflow/web build",
+    "lint:web": "pnpm --filter @veriflow/web lint",
+    "typecheck:web": "pnpm --filter @veriflow/web typecheck"
+  }
+}

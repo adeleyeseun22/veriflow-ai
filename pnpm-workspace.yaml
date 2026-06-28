@@ -1,0 +1,6 @@
+packages:
+  - "apps/web"
+allowBuilds:
+  '@tailwindcss/oxide': true
+  sharp: true
+  unrs-resolver: true
