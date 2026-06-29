@@ -59,8 +59,8 @@ class DocumentProcessingJob(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     job_type: Mapped[str] = mapped_column(
         String(80),
         nullable=False,
-        default="integrity_check",
-        server_default="integrity_check",
+        default="structured_ingestion",
+        server_default="structured_ingestion",
     )
     status: Mapped[ProcessingJobStatus] = mapped_column(
         Enum(ProcessingJobStatus, name="processing_job_status", native_enum=True),

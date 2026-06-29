@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     app_name: str = "VeriFlow AI API"
     app_env: str = "development"
     debug: bool = True
-    api_version: str = "0.6.0"
+    api_version: str = "0.8.0"
     api_v1_prefix: str = "/api/v1"
 
     database_url: str = (
@@ -48,6 +48,17 @@ class Settings(BaseSettings):
     processing_retry_base_seconds: int = 5
     worker_heartbeat_key: str = "veriflow:workers:document-processing"
     worker_heartbeat_ttl_seconds: int = 90
+
+    parser_max_pdf_pages: int = 2000
+    parser_max_table_rows: int = 5000
+    parser_max_table_columns: int = 256
+    parser_max_cell_chars: int = 10000
+    parser_max_section_chars: int = 1_000_000
+
+    chunk_max_chars: int = 4000
+    chunk_overlap_chars: int = 400
+    chunk_table_max_rows: int = 40
+    chunk_table_row_overlap: int = 2
 
 
 @lru_cache

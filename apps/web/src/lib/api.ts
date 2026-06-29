@@ -61,6 +61,18 @@ export type DocumentRecord = {
   status: DocumentStatus;
   status_message: string | null;
   processing_attempts: number;
+  parser_name: string | null;
+  parser_version: string | null;
+  parsed_at: string | null;
+  page_count: number;
+  section_count: number;
+  table_count: number;
+  extracted_text_chars: number;
+  chunker_name: string | null;
+  chunker_version: string | null;
+  chunked_at: string | null;
+  chunk_count: number;
+  chunk_token_estimate: number;
   storage_provider: string | null;
   storage_bucket: string | null;
   storage_key: string | null;
@@ -106,6 +118,86 @@ export type DocumentListResponse = {
   offset: number;
 };
 
+export type DocumentPage = {
+  id: string;
+  page_number: number;
+  text_content: string;
+  char_count: number;
+  word_count: number;
+  page_metadata: Record<string, unknown>;
+};
+
+export type DocumentSection = {
+  id: string;
+  ordinal: number;
+  title: string | null;
+  heading_level: number | null;
+  section_path: string[];
+  content: string;
+  page_start: number | null;
+  page_end: number | null;
+  char_count: number;
+  word_count: number;
+  section_metadata: Record<string, unknown>;
+};
+
+export type DocumentTable = {
+  id: string;
+  section_id: string | null;
+  ordinal: number;
+  title: string | null;
+  source_label: string | null;
+  page_number: number | null;
+  column_names: string[];
+  rows: string[][];
+  row_count: number;
+  column_count: number;
+  is_truncated: boolean;
+  table_metadata: Record<string, unknown>;
+};
+
+export type DocumentContentResponse = {
+  document: DocumentRecord;
+  pages: DocumentPage[];
+  sections: DocumentSection[];
+  tables: DocumentTable[];
+  returned_page_count: number;
+  returned_section_count: number;
+  returned_table_count: number;
+  table_row_limit: number;
+};
+
+export type ChunkSourceType = "section" | "page" | "table";
+
+export type DocumentChunk = {
+  id: string;
+  document_id: string;
+  section_id: string | null;
+  table_id: string | null;
+  ordinal: number;
+  source_type: ChunkSourceType;
+  source_label: string | null;
+  heading_path: string[];
+  page_start: number | null;
+  page_end: number | null;
+  content: string;
+  char_count: number;
+  word_count: number;
+  token_estimate: number;
+  overlap_chars: number;
+  fingerprint: string;
+  chunk_metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+};
+
+export type DocumentChunkListResponse = {
+  items: DocumentChunk[];
+  total: number;
+  limit: number;
+  offset: number;
+};
+
 type ValidationDetail = Array<{ msg?: string }>;
 type StructuredDetail = { message?: string; document_id?: string | null };
 
@@ -115,7 +207,8 @@ type ErrorPayload = {
 };
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
-const CSRF_COOKIE_NAME = process.env.NEXT_PUBLIC_CSRF_COOKIE_NAME ?? "veriflow_csrf";
+const CSRF_COOKIE_NAME =
+  process.env.NEXT_PUBLIC_CSRF_COOKIE_NAME ?? "veriflow_csrf";
 
 export class ApiError extends Error {
   status: number;
@@ -158,6 +251,7 @@ function errorMessage(payload: ErrorPayload | null, status: number): string {
 
   if (payload?.detail && typeof payload.detail === "object") {
     const structuredDetail = payload.detail as StructuredDetail;
+
     if (structuredDetail.message) {
       return structuredDetail.message;
     }
@@ -176,7 +270,8 @@ async function apiRequest<T>(
   requireCsrf = false,
 ): Promise<T> {
   const headers = new Headers(options.headers);
-  const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
+  const isFormData =
+    typeof FormData !== "undefined" && options.body instanceof FormData;
 
   if (options.body && !isFormData && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
@@ -186,7 +281,10 @@ async function apiRequest<T>(
     const csrfToken = readCookie(CSRF_COOKIE_NAME);
 
     if (!csrfToken) {
-      throw new ApiError("Your secure session is missing a CSRF token. Sign in again.", 403);
+      throw new ApiError(
+        "Your secure session is missing a CSRF token. Sign in again.",
+        403,
+      );
     }
 
     headers.set("X-CSRF-Token", csrfToken);
@@ -199,11 +297,18 @@ async function apiRequest<T>(
     cache: "no-store",
   });
 
-  const hasJson = response.headers.get("content-type")?.includes("application/json");
-  const payload = hasJson ? ((await response.json()) as T | ErrorPayload) : null;
+  const hasJson = response.headers
+    .get("content-type")
+    ?.includes("application/json");
+  const payload = hasJson
+    ? ((await response.json()) as T | ErrorPayload)
+    : null;
 
   if (!response.ok) {
-    throw new ApiError(errorMessage(payload as ErrorPayload | null, response.status), response.status);
+    throw new ApiError(
+      errorMessage(payload as ErrorPayload | null, response.status),
+      response.status,
+    );
   }
 
   return payload as T;
@@ -291,6 +396,15 @@ export async function listDocuments(
   );
 }
 
+export async function getDocument(
+  workspaceId: string,
+  documentId: string,
+): Promise<DocumentRecord> {
+  return apiRequest<DocumentRecord>(
+    `/api/v1/workspaces/${workspaceId}/documents/${documentId}`,
+  );
+}
+
 export async function uploadDocument(
   workspaceId: string,
   file: File,
@@ -307,7 +421,6 @@ export async function uploadDocument(
     true,
   );
 }
-
 
 export async function retryDocumentProcessing(
   workspaceId: string,
@@ -326,5 +439,61 @@ export async function listDocumentProcessingJobs(
 ): Promise<DocumentProcessingJobListResponse> {
   return apiRequest<DocumentProcessingJobListResponse>(
     `/api/v1/workspaces/${workspaceId}/documents/${documentId}/jobs`,
+  );
+}
+
+export async function getDocumentContent(
+  workspaceId: string,
+  documentId: string,
+  options: {
+    pageLimit?: number;
+    sectionLimit?: number;
+    tableLimit?: number;
+    tableRowLimit?: number;
+  } = {},
+): Promise<DocumentContentResponse> {
+  const params = new URLSearchParams({
+    page_limit: String(options.pageLimit ?? 200),
+    section_limit: String(options.sectionLimit ?? 200),
+    table_limit: String(options.tableLimit ?? 100),
+    table_row_limit: String(options.tableRowLimit ?? 50),
+  });
+
+  return apiRequest<DocumentContentResponse>(
+    `/api/v1/workspaces/${workspaceId}/documents/${documentId}/content?${params.toString()}`,
+  );
+}
+
+export async function listDocumentChunks(
+  workspaceId: string,
+  documentId: string,
+  options: {
+    limit?: number;
+    offset?: number;
+    sourceType?: ChunkSourceType;
+  } = {},
+): Promise<DocumentChunkListResponse> {
+  const params = new URLSearchParams({
+    limit: String(options.limit ?? 500),
+    offset: String(options.offset ?? 0),
+  });
+
+  if (options.sourceType) {
+    params.set("source_type", options.sourceType);
+  }
+
+  return apiRequest<DocumentChunkListResponse>(
+    `/api/v1/workspaces/${workspaceId}/documents/${documentId}/chunks?${params.toString()}`,
+  );
+}
+
+export async function queueStructuredIngestion(
+  workspaceId: string,
+  documentId: string,
+): Promise<DocumentRecord> {
+  return apiRequest<DocumentRecord>(
+    `/api/v1/workspaces/${workspaceId}/documents/${documentId}/ingest`,
+    { method: "POST" },
+    true,
   );
 }

@@ -13,8 +13,11 @@ from veriflow_api.config import settings
 from veriflow_api.database import async_session_factory
 from veriflow_api.models.document import Document, DocumentStatus
 from veriflow_api.models.processing_job import DocumentProcessingJob, ProcessingJobStatus
+from veriflow_api.parsers import ParserError, parse_document
 from veriflow_api.services.audit import record_audit_event
+from veriflow_api.services.chunking import build_document_chunks, replace_document_chunks
 from veriflow_api.services.storage import ObjectStorageError, object_storage
+from veriflow_api.services.structured_ingestion import replace_structured_content
 
 
 class RecoverableProcessingError(RuntimeError):
@@ -38,9 +41,7 @@ def retry_delay_seconds(retry_number: int) -> int:
 
 
 async def run_document_processing(job_id: UUID, celery_task_id: str | None) -> None:
-    temporary_file = NamedTemporaryFile(prefix="veriflow-process-", delete=False)
-    temporary_path = Path(temporary_file.name)
-    temporary_file.close()
+    temporary_path: Path | None = None
 
     try:
         async with async_session_factory() as session:
@@ -53,14 +54,23 @@ async def run_document_processing(job_id: UUID, celery_task_id: str | None) -> N
             if not document.storage_key:
                 raise PermanentProcessingError("Document storage key is missing.")
 
+            temporary_file = NamedTemporaryFile(
+                prefix="veriflow-process-",
+                suffix=f".{document.file_extension}",
+                delete=False,
+            )
+            temporary_path = Path(temporary_file.name)
+            temporary_file.close()
+
             now = datetime.now(UTC)
             job.status = ProcessingJobStatus.PROCESSING
+            job.job_type = "structured_ingestion"
             job.celery_task_id = celery_task_id or job.celery_task_id
             job.attempts += 1
             job.started_at = now
             job.last_error = None
             document.status = DocumentStatus.PROCESSING
-            document.status_message = "Verifying the stored file in the background."
+            document.status_message = "Verifying integrity and extracting document structure."
             document.processing_attempts += 1
             await session.commit()
 
@@ -81,16 +91,39 @@ async def run_document_processing(job_id: UUID, celery_task_id: str | None) -> N
                     "Stored file checksum does not match upload metadata."
                 )
 
+            try:
+                parsed = await run_in_threadpool(
+                    parse_document,
+                    temporary_path,
+                    document.file_extension,
+                )
+            except ParserError as error:
+                raise PermanentProcessingError(str(error)) from error
+            except Exception as error:
+                raise PermanentProcessingError(
+                    "The document parser encountered an unexpected error."
+                ) from error
+
             completed_at = datetime.now(UTC)
-            metadata = dict(document.document_metadata)
-            metadata["background_processing"] = {
-                "integrity_verified": True,
-                "verified_at": completed_at.isoformat(),
-                "worker_task_id": celery_task_id,
-            }
-            document.document_metadata = metadata
+            stored_content = await replace_structured_content(
+                session,
+                document=document,
+                parsed=parsed,
+                parsed_at=completed_at,
+            )
+            generated_chunks = build_document_chunks(
+                pages=stored_content.pages,
+                sections=stored_content.sections,
+                tables=stored_content.tables,
+            )
+            await replace_document_chunks(
+                session,
+                document=document,
+                chunks=generated_chunks,
+                chunked_at=completed_at,
+            )
             document.status = DocumentStatus.READY
-            document.status_message = "Integrity verified. Ready for structured ingestion."
+            document.status_message = "Structured content extracted and chunked for retrieval."
             document.processed_at = completed_at
             job.status = ProcessingJobStatus.SUCCEEDED
             job.completed_at = completed_at
@@ -98,19 +131,36 @@ async def run_document_processing(job_id: UUID, celery_task_id: str | None) -> N
                 **job.details,
                 "verified_size_bytes": actual_size,
                 "verified_sha256": actual_sha256,
+                "parser_name": parsed.parser_name,
+                "parser_version": parsed.parser_version,
+                "page_count": len(parsed.pages),
+                "section_count": len(parsed.sections),
+                "table_count": len(parsed.tables),
+                "extracted_text_chars": parsed.extracted_text_chars,
+                "chunk_count": len(generated_chunks),
+                "chunk_token_estimate": sum(chunk.token_estimate for chunk in generated_chunks),
             }
             record_audit_event(
                 session,
-                action="document.processing.completed",
+                action="document.structured_ingestion.completed",
                 resource_type="document",
                 resource_id=str(document.id),
                 actor_user_id=job.requested_by_id,
                 workspace_id=document.workspace_id,
-                details={"job_id": str(job.id), "attempts": job.attempts},
+                details={
+                    "job_id": str(job.id),
+                    "attempts": job.attempts,
+                    "parser_name": parsed.parser_name,
+                    "page_count": len(parsed.pages),
+                    "section_count": len(parsed.sections),
+                    "table_count": len(parsed.tables),
+                    "chunk_count": len(generated_chunks),
+                },
             )
             await session.commit()
     finally:
-        await run_in_threadpool(temporary_path.unlink, missing_ok=True)
+        if temporary_path is not None:
+            await run_in_threadpool(temporary_path.unlink, missing_ok=True)
 
 
 async def mark_processing_retry(job_id: UUID, message: str) -> None:
@@ -139,7 +189,7 @@ async def mark_processing_failed(job_id: UUID, message: str) -> None:
         job.completed_at = completed_at
         if document is not None:
             document.status = DocumentStatus.FAILED
-            document.status_message = "Background processing failed. Retry is available."
+            document.status_message = "Structured document processing failed. Retry is available."
             record_audit_event(
                 session,
                 action="document.processing.failed",

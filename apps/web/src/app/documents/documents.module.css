@@ -514,3 +514,30 @@
   opacity: 0.55;
   cursor: wait;
 }
+
+.inspectLink {
+  padding: 7px 10px;
+  border: 1px solid rgba(143, 255, 197, 0.17);
+  border-radius: 9px;
+  background: rgba(143, 255, 197, 0.065);
+  color: #a8ffd2;
+  font-size: 0.65rem;
+  font-weight: 700;
+  transition:
+    transform 150ms ease,
+    border-color 150ms ease,
+    background 150ms ease;
+}
+
+.inspectLink:hover {
+  transform: translateY(-1px);
+  border-color: rgba(143, 255, 197, 0.32);
+  background: rgba(143, 255, 197, 0.11);
+}
+
+@media (max-width: 720px) {
+  .statusColumn {
+    grid-column: 2;
+    justify-items: start;
+  }
+}

@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from veriflow_api.api.routes import auth, documents, health, workspaces
+from veriflow_api.api.routes import auth, documents, health, structured_content, workspaces
 from veriflow_api.config import settings
 
 api_router = APIRouter()
@@ -19,4 +19,9 @@ api_router.include_router(
     documents.router,
     prefix=settings.api_v1_prefix,
     tags=["documents"],
+)
+api_router.include_router(
+    structured_content.router,
+    prefix=settings.api_v1_prefix,
+    tags=["structured-content"],
 )
