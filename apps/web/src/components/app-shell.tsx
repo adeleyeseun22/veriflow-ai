@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 
 import { Brand } from "@/components/brand";
@@ -22,6 +22,7 @@ export function AppShell({
   onWorkspaceChange: (workspaceId: string) => void;
   children: ReactNode;
 }) {
+  const pathname = usePathname();
   const router = useRouter();
   const [loggingOut, setLoggingOut] = useState(false);
   const initials = user.full_name
@@ -50,15 +51,20 @@ export function AppShell({
           <Brand />
 
           <nav className={styles.navigation} aria-label="Application navigation">
-            <Link className={styles.activeLink} href="/dashboard">
+            <Link
+              className={pathname === "/dashboard" ? styles.activeLink : undefined}
+              href="/dashboard"
+            >
               <span>⌂</span>
               Overview
             </Link>
-            <button type="button" disabled>
+            <Link
+              className={pathname.startsWith("/documents") ? styles.activeLink : undefined}
+              href="/documents"
+            >
               <span>□</span>
               Documents
-              <small>Phase 2</small>
-            </button>
+            </Link>
             <button type="button" disabled>
               <span>⌕</span>
               Ask VeriFlow
@@ -112,9 +118,9 @@ export function AppShell({
             <span className={styles.roleBadge}>
               {workspaces.find((workspace) => workspace.id === activeWorkspaceId)?.role ?? "member"}
             </span>
-            <button type="button" disabled>
+            <Link className={styles.uploadLink} href="/documents">
               Upload documents
-            </button>
+            </Link>
           </div>
         </header>
 

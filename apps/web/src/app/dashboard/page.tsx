@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { useAuth } from "@/hooks/use-auth";
 import {
+  listDocuments,
   listWorkspaceAuditLogs,
   listWorkspaces,
   type AuditLog,
@@ -34,6 +35,7 @@ export default function DashboardPage() {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [activeWorkspaceId, setActiveWorkspaceId] = useState("");
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [documentCount, setDocumentCount] = useState(0);
   const [loadingWorkspace, setLoadingWorkspace] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -81,18 +83,24 @@ export default function DashboardPage() {
       return;
     }
 
-    async function loadAuditLogs() {
+    async function loadWorkspaceSummary() {
       try {
-        const result = await listWorkspaceAuditLogs(activeWorkspaceId);
-        setAuditLogs(result);
+        const [activity, documentPage] = await Promise.all([
+          listWorkspaceAuditLogs(activeWorkspaceId),
+          listDocuments(activeWorkspaceId, { limit: 1 }),
+        ]);
+        setAuditLogs(activity);
+        setDocumentCount(documentPage.total);
       } catch (requestError) {
         setError(
-          requestError instanceof Error ? requestError.message : "Unable to load activity.",
+          requestError instanceof Error
+            ? requestError.message
+            : "Unable to load the workspace summary.",
         );
       }
     }
 
-    void loadAuditLogs();
+    void loadWorkspaceSummary();
   }, [activeWorkspaceId]);
 
   const activeWorkspace = useMemo(
@@ -104,9 +112,14 @@ export default function DashboardPage() {
     localStorage.setItem("veriflow_active_workspace", workspaceId);
     setActiveWorkspaceId(workspaceId);
     setAuditLogs([]);
+    setDocumentCount(0);
   }
 
-  if (auth.status === "loading" || loadingWorkspace || auth.status === "authenticated" && !activeWorkspace) {
+  if (
+    auth.status === "loading" ||
+    loadingWorkspace ||
+    (auth.status === "authenticated" && !activeWorkspace)
+  ) {
     return <div className={styles.fullPageState}>Opening your secure workspace…</div>;
   }
 
@@ -130,12 +143,12 @@ export default function DashboardPage() {
           <p className={styles.eyebrow}>Workspace overview</p>
           <h1>Good to have you here, {auth.user.full_name.split(" ")[0]}.</h1>
           <p>
-            Your identity, workspace permissions, session security, and audit trail are active.
+            Your identity, workspace permissions, private storage, and audit trail are active.
           </p>
         </div>
         <div className={styles.foundationStatus}>
           <span />
-          Phase 1 foundation operational
+          Phase 2 upload foundation operational
         </div>
       </section>
 
@@ -147,8 +160,8 @@ export default function DashboardPage() {
             <span>Documents</span>
             <small>In this workspace</small>
           </div>
-          <strong>0</strong>
-          <p>Document ingestion begins in Phase 2.</p>
+          <strong>{documentCount}</strong>
+          <p>Validated originals stored in the private evidence library.</p>
         </article>
         <article>
           <div>
@@ -156,7 +169,7 @@ export default function DashboardPage() {
             <small>Awaiting review</small>
           </div>
           <strong>0</strong>
-          <p>Evidence findings will appear after processing.</p>
+          <p>Evidence findings will appear after document processing.</p>
         </article>
         <article>
           <div>
@@ -168,11 +181,11 @@ export default function DashboardPage() {
         </article>
         <article>
           <div>
-            <span>Security</span>
-            <small>Session status</small>
+            <span>Storage</span>
+            <small>Original files</small>
           </div>
-          <strong className={styles.secureMetric}>Secure</strong>
-          <p>Redis session, HTTP-only cookie, and CSRF protection.</p>
+          <strong className={styles.secureMetric}>Private</strong>
+          <p>MinIO object storage with workspace-scoped metadata.</p>
         </article>
       </section>
 
@@ -207,10 +220,10 @@ export default function DashboardPage() {
 
           <div className={styles.nextMilestone}>
             <span>Next milestone</span>
-            <strong>Document upload and storage</strong>
+            <strong>Background document processing</strong>
             <p>
-              Phase 2 will introduce validated uploads, object storage, background processing, and
-              document status tracking.
+              Phase 2C will queue uploaded files, extract structured content, track retries, and
+              display live processing states.
             </p>
           </div>
         </article>

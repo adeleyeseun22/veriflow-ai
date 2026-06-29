@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     app_name: str = "VeriFlow AI API"
     app_env: str = "development"
     debug: bool = True
-    api_version: str = "0.4.0"
+    api_version: str = "0.5.0"
     api_v1_prefix: str = "/api/v1"
 
     database_url: str = (
@@ -33,6 +33,13 @@ class Settings(BaseSettings):
     session_cookie_secure: bool = False
     session_cookie_samesite: Literal["lax", "strict", "none"] = "lax"
     session_cookie_domain: str | None = None
+
+    minio_endpoint: str = "localhost:9000"
+    minio_access_key: str = "veriflow_minio"
+    minio_secret_key: str = "veriflow_minio_password"
+    minio_secure: bool = False
+    minio_bucket: str = "veriflow-documents"
+    max_upload_size_bytes: int = 25 * 1024 * 1024
 
 
 @lru_cache

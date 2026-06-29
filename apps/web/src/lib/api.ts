@@ -40,8 +40,48 @@ export type AuditLog = {
   created_at: string;
 };
 
+export type DocumentStatus =
+  | "pending"
+  | "uploaded"
+  | "queued"
+  | "processing"
+  | "ready"
+  | "failed";
+
+export type DocumentRecord = {
+  id: string;
+  workspace_id: string;
+  uploaded_by_id: string;
+  display_name: string;
+  original_filename: string;
+  file_extension: string;
+  mime_type: string;
+  size_bytes: number;
+  sha256: string;
+  status: DocumentStatus;
+  status_message: string | null;
+  processing_attempts: number;
+  storage_provider: string | null;
+  storage_bucket: string | null;
+  storage_key: string | null;
+  document_metadata: Record<string, unknown>;
+  processed_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type DocumentListResponse = {
+  items: DocumentRecord[];
+  total: number;
+  limit: number;
+  offset: number;
+};
+
+type ValidationDetail = Array<{ msg?: string }>;
+type StructuredDetail = { message?: string; document_id?: string | null };
+
 type ErrorPayload = {
-  detail?: string | Array<{ msg?: string }>;
+  detail?: string | ValidationDetail | StructuredDetail;
   message?: string;
 };
 
@@ -87,6 +127,13 @@ function errorMessage(payload: ErrorPayload | null, status: number): string {
     }
   }
 
+  if (payload?.detail && typeof payload.detail === "object") {
+    const structuredDetail = payload.detail as StructuredDetail;
+    if (structuredDetail.message) {
+      return structuredDetail.message;
+    }
+  }
+
   if (payload?.message) {
     return payload.message;
   }
@@ -100,8 +147,9 @@ async function apiRequest<T>(
   requireCsrf = false,
 ): Promise<T> {
   const headers = new Headers(options.headers);
+  const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
 
-  if (options.body && !headers.has("Content-Type")) {
+  if (options.body && !isFormData && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
 
@@ -193,5 +241,40 @@ export async function listWorkspaceAuditLogs(
 ): Promise<AuditLog[]> {
   return apiRequest<AuditLog[]>(
     `/api/v1/workspaces/${workspaceId}/audit-logs?limit=${limit}`,
+  );
+}
+
+export async function listDocuments(
+  workspaceId: string,
+  options: { limit?: number; offset?: number; status?: DocumentStatus } = {},
+): Promise<DocumentListResponse> {
+  const params = new URLSearchParams({
+    limit: String(options.limit ?? 25),
+    offset: String(options.offset ?? 0),
+  });
+
+  if (options.status) {
+    params.set("status", options.status);
+  }
+
+  return apiRequest<DocumentListResponse>(
+    `/api/v1/workspaces/${workspaceId}/documents?${params.toString()}`,
+  );
+}
+
+export async function uploadDocument(
+  workspaceId: string,
+  file: File,
+): Promise<DocumentRecord> {
+  const body = new FormData();
+  body.append("file", file);
+
+  return apiRequest<DocumentRecord>(
+    `/api/v1/workspaces/${workspaceId}/documents`,
+    {
+      method: "POST",
+      body,
+    },
+    true,
   );
 }

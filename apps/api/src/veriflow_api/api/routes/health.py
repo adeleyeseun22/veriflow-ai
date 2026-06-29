@@ -7,6 +7,7 @@ from veriflow_api.cache import check_redis
 from veriflow_api.config import settings
 from veriflow_api.database import check_database
 from veriflow_api.schemas import LivenessResponse, ReadinessResponse
+from veriflow_api.services.storage import check_object_storage
 
 router = APIRouter()
 
@@ -30,11 +31,16 @@ async def liveness() -> LivenessResponse:
 async def readiness() -> ReadinessResponse | JSONResponse:
     """Verify that the API can reach its required infrastructure."""
 
-    checks: dict[str, str] = {"database": "unhealthy", "redis": "unhealthy"}
+    checks: dict[str, str] = {
+        "database": "unhealthy",
+        "redis": "unhealthy",
+        "object_storage": "unhealthy",
+    }
 
-    database_result, redis_result = await asyncio.gather(
+    database_result, redis_result, storage_result = await asyncio.gather(
         check_database(),
         check_redis(),
+        check_object_storage(),
         return_exceptions=True,
     )
 
@@ -42,6 +48,8 @@ async def readiness() -> ReadinessResponse | JSONResponse:
         checks["database"] = "healthy"
     if not isinstance(redis_result, BaseException):
         checks["redis"] = "healthy"
+    if not isinstance(storage_result, BaseException):
+        checks["object_storage"] = "healthy"
 
     all_healthy = all(value == "healthy" for value in checks.values())
     payload = ReadinessResponse(
