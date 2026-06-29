@@ -54,6 +54,8 @@ class Document(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         CheckConstraint("extracted_text_chars >= 0", name="nonnegative_extracted_text_chars"),
         CheckConstraint("chunk_count >= 0", name="nonnegative_chunk_count"),
         CheckConstraint("chunk_token_estimate >= 0", name="nonnegative_chunk_token_estimate"),
+        CheckConstraint("embedding_count >= 0", name="nonnegative_embedding_count"),
+        CheckConstraint("embedding_dimension >= 0", name="nonnegative_embedding_dimension"),
         Index("ix_documents_workspace_created_at", "workspace_id", "created_at"),
     )
 
@@ -114,6 +116,15 @@ class Document(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     chunk_token_estimate: Mapped[int] = mapped_column(
         Integer, nullable=False, default=0, server_default=text("0")
     )
+    embedding_provider: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    embedding_model: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    embedding_dimension: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default=text("0")
+    )
+    embedding_count: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default=text("0")
+    )
+    embedded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     storage_provider: Mapped[str | None] = mapped_column(String(32), nullable=True)
     storage_bucket: Mapped[str | None] = mapped_column(String(255), nullable=True)
     storage_key: Mapped[str | None] = mapped_column(String(1024), nullable=True)

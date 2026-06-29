@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+from datetime import datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     CheckConstraint,
+    DateTime,
     Enum,
     ForeignKey,
     Index,
@@ -44,6 +47,11 @@ class DocumentChunk(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         CheckConstraint("char_length(fingerprint) = 64", name="valid_fingerprint_length"),
         Index("ix_document_chunks_document_source", "document_id", "source_type"),
         Index("ix_document_chunks_fingerprint", "fingerprint"),
+        Index(
+            "ix_document_chunks_embedding_namespace",
+            "embedding_provider",
+            "embedding_model",
+        ),
     )
 
     document_id: Mapped[UUID] = mapped_column(
@@ -95,6 +103,10 @@ class DocumentChunk(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         default=dict,
         server_default=text("'{}'::jsonb"),
     )
+    embedding: Mapped[list[float] | None] = mapped_column(Vector(384), nullable=True)
+    embedding_provider: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    embedding_model: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    embedded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     document: Mapped[Document] = relationship("Document", back_populates="chunks")
     section: Mapped[DocumentSection | None] = relationship(

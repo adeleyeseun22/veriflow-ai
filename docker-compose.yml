@@ -76,7 +76,7 @@ services:
       APP_NAME: ${APP_NAME:-VeriFlow AI API}
       APP_ENV: ${APP_ENV:-development}
       DEBUG: ${DEBUG:-true}
-      API_VERSION: ${API_VERSION:-0.6.0}
+      API_VERSION: ${API_VERSION:-0.9.0}
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-veriflow}:${POSTGRES_PASSWORD:-veriflow_dev_password}@postgres:5432/${POSTGRES_DB:-veriflow}
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/1
@@ -98,6 +98,16 @@ services:
       SESSION_TTL_SECONDS: ${SESSION_TTL_SECONDS:-604800}
       SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
       SESSION_COOKIE_SAMESITE: ${SESSION_COOKIE_SAMESITE:-lax}
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-fastembed}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-BAAI/bge-small-en-v1.5}
+      EMBEDDING_DIMENSION: ${EMBEDDING_DIMENSION:-384}
+      EMBEDDING_BATCH_SIZE: ${EMBEDDING_BATCH_SIZE:-32}
+      EMBEDDING_THREADS: ${EMBEDDING_THREADS:-2}
+      EMBEDDING_CACHE_DIR: /models/fastembed
+      SEMANTIC_SEARCH_DEFAULT_LIMIT: ${SEMANTIC_SEARCH_DEFAULT_LIMIT:-10}
+      SEMANTIC_SEARCH_MAX_LIMIT: ${SEMANTIC_SEARCH_MAX_LIMIT:-50}
+    volumes:
+      - embedding_cache:/models/fastembed
     depends_on:
       postgres:
         condition: service_healthy
@@ -130,6 +140,8 @@ services:
     container_name: veriflow-api
     restart: unless-stopped
     environment: *api-environment
+    volumes:
+      - embedding_cache:/models/fastembed
     ports:
       - "8000:8000"
     depends_on:
@@ -172,6 +184,7 @@ volumes:
   postgres_data:
   redis_data:
   minio_data:
+  embedding_cache:
 
 networks:
   veriflow-network:

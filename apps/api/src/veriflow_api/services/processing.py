@@ -16,6 +16,7 @@ from veriflow_api.models.processing_job import DocumentProcessingJob, Processing
 from veriflow_api.parsers import ParserError, parse_document
 from veriflow_api.services.audit import record_audit_event
 from veriflow_api.services.chunking import build_document_chunks, replace_document_chunks
+from veriflow_api.services.embeddings import EmbeddingProviderError, embed_document_chunks
 from veriflow_api.services.storage import ObjectStorageError, object_storage
 from veriflow_api.services.structured_ingestion import replace_structured_content
 
@@ -116,14 +117,25 @@ async def run_document_processing(job_id: UUID, celery_task_id: str | None) -> N
                 sections=stored_content.sections,
                 tables=stored_content.tables,
             )
-            await replace_document_chunks(
+            stored_chunks = await replace_document_chunks(
                 session,
                 document=document,
                 chunks=generated_chunks,
                 chunked_at=completed_at,
             )
+            try:
+                await embed_document_chunks(
+                    session,
+                    document=document,
+                    chunks=stored_chunks,
+                    embedded_at=completed_at,
+                )
+            except EmbeddingProviderError as error:
+                raise RecoverableProcessingError(str(error)) from error
             document.status = DocumentStatus.READY
-            document.status_message = "Structured content extracted and chunked for retrieval."
+            document.status_message = (
+                "Structured content extracted, embedded, and ready for retrieval."
+            )
             document.processed_at = completed_at
             job.status = ProcessingJobStatus.SUCCEEDED
             job.completed_at = completed_at
@@ -139,6 +151,10 @@ async def run_document_processing(job_id: UUID, celery_task_id: str | None) -> N
                 "extracted_text_chars": parsed.extracted_text_chars,
                 "chunk_count": len(generated_chunks),
                 "chunk_token_estimate": sum(chunk.token_estimate for chunk in generated_chunks),
+                "embedding_provider": document.embedding_provider,
+                "embedding_model": document.embedding_model,
+                "embedding_dimension": document.embedding_dimension,
+                "embedding_count": document.embedding_count,
             }
             record_audit_event(
                 session,
@@ -155,6 +171,8 @@ async def run_document_processing(job_id: UUID, celery_task_id: str | None) -> N
                     "section_count": len(parsed.sections),
                     "table_count": len(parsed.tables),
                     "chunk_count": len(generated_chunks),
+                    "embedding_count": document.embedding_count,
+                    "embedding_model": document.embedding_model,
                 },
             )
             await session.commit()

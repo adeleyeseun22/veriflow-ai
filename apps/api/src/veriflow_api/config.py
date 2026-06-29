@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     app_name: str = "VeriFlow AI API"
     app_env: str = "development"
     debug: bool = True
-    api_version: str = "0.8.0"
+    api_version: str = "0.9.0"
     api_v1_prefix: str = "/api/v1"
 
     database_url: str = (
@@ -59,6 +59,15 @@ class Settings(BaseSettings):
     chunk_overlap_chars: int = 400
     chunk_table_max_rows: int = 40
     chunk_table_row_overlap: int = 2
+
+    embedding_provider: Literal["fastembed"] = "fastembed"
+    embedding_model: str = "BAAI/bge-small-en-v1.5"
+    embedding_dimension: int = 384
+    embedding_batch_size: int = 32
+    embedding_threads: int = 2
+    embedding_cache_dir: str = "/models/fastembed"
+    semantic_search_default_limit: int = 10
+    semantic_search_max_limit: int = 50
 
 
 @lru_cache

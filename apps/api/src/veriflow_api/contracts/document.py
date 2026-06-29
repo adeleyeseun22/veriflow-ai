@@ -35,6 +35,11 @@ class DocumentResponse(BaseModel):
     chunked_at: datetime | None
     chunk_count: int
     chunk_token_estimate: int
+    embedding_provider: str | None
+    embedding_model: str | None
+    embedding_dimension: int
+    embedding_count: int
+    embedded_at: datetime | None
     storage_provider: str | None
     storage_bucket: str | None
     storage_key: str | None
@@ -155,6 +160,9 @@ class DocumentChunkResponse(BaseModel):
     overlap_chars: int
     fingerprint: str
     chunk_metadata: dict[str, object]
+    embedding_provider: str | None
+    embedding_model: str | None
+    embedded_at: datetime | None
     created_at: datetime
     updated_at: datetime
 
