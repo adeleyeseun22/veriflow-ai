@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     app_name: str = "VeriFlow AI API"
     app_env: str = "development"
     debug: bool = True
-    api_version: str = "0.3.0"
+    api_version: str = "0.4.0"
     api_v1_prefix: str = "/api/v1"
 
     database_url: str = (

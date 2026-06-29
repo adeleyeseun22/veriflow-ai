@@ -11,6 +11,7 @@ from veriflow_api.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
 if TYPE_CHECKING:
     from veriflow_api.models.audit_log import AuditLog
+    from veriflow_api.models.document import Document
     from veriflow_api.models.organization import Organization
     from veriflow_api.models.user import User
 
@@ -51,6 +52,11 @@ class Workspace(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     memberships: Mapped[list[WorkspaceMembership]] = relationship(
         "WorkspaceMembership",
+        back_populates="workspace",
+        cascade="all, delete-orphan",
+    )
+    documents: Mapped[list[Document]] = relationship(
+        "Document",
         back_populates="workspace",
         cascade="all, delete-orphan",
     )
