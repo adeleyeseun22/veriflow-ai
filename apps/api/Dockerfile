@@ -12,6 +12,8 @@ RUN pip install --no-cache-dir uv==0.11.20
 COPY apps/api/pyproject.toml apps/api/uv.lock apps/api/README.md ./
 RUN uv sync --frozen --no-dev --no-install-project
 
+COPY apps/api/alembic.ini ./alembic.ini
+COPY apps/api/migrations ./migrations
 COPY apps/api/src ./src
 RUN uv sync --frozen --no-dev
 

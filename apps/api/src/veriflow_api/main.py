@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from veriflow_api.api.router import api_router
 from veriflow_api.cache import redis_client
 from veriflow_api.config import settings
-from veriflow_api.db import engine
+from veriflow_api.database import engine
 from veriflow_api.schemas import ServiceInfo
 
 

@@ -5,7 +5,7 @@ from fastapi.responses import JSONResponse
 
 from veriflow_api.cache import check_redis
 from veriflow_api.config import settings
-from veriflow_api.db import check_database
+from veriflow_api.database import check_database
 from veriflow_api.schemas import LivenessResponse, ReadinessResponse
 
 router = APIRouter()
