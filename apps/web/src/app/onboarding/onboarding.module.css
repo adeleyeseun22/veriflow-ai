@@ -1,0 +1,249 @@
+.page {
+  min-height: 100vh;
+  padding: 0 32px 60px;
+  background:
+    radial-gradient(circle at 12% 20%, rgba(73, 230, 155, 0.13), transparent 28%),
+    radial-gradient(circle at 90% 8%, rgba(82, 132, 255, 0.1), transparent 26%),
+    #07100d;
+  color: #f2fff8;
+}
+
+.header {
+  width: min(1180px, 100%);
+  min-height: 92px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  border-bottom: 1px solid rgba(209, 255, 231, 0.1);
+}
+
+.header > span {
+  color: #83998e;
+  font-size: 0.78rem;
+}
+
+.content {
+  width: min(1180px, 100%);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(420px, 0.82fr);
+  gap: clamp(56px, 8vw, 110px);
+  align-items: center;
+  padding: 96px 0 50px;
+}
+
+.intro {
+  max-width: 660px;
+}
+
+.eyebrow,
+.cardHeading > span {
+  display: block;
+  margin: 0 0 18px;
+  color: #8fffc5;
+  font-size: 0.74rem;
+  font-weight: 760;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.intro h1 {
+  margin: 0 0 28px;
+  font-size: clamp(3.2rem, 5.8vw, 5.7rem);
+  font-weight: 500;
+  letter-spacing: -0.055em;
+  line-height: 1.04;
+}
+
+.intro > p:not(.eyebrow) {
+  max-width: 590px;
+  margin: 0 0 48px;
+  color: #9eb8aa;
+  font-size: 1.02rem;
+  line-height: 1.8;
+}
+
+.steps {
+  display: grid;
+  gap: 10px;
+}
+
+.steps article {
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  gap: 16px;
+  padding: 16px 18px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+}
+
+.steps .activeStep {
+  border-color: rgba(143, 255, 197, 0.14);
+  background: rgba(17, 31, 26, 0.62);
+}
+
+.steps article > span {
+  color: #8fffc5;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.74rem;
+}
+
+.steps strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.steps p {
+  margin: 0;
+  color: #71877c;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.card {
+  padding: 38px;
+  border: 1px solid rgba(209, 255, 231, 0.12);
+  border-radius: 24px;
+  background: rgba(15, 29, 23, 0.84);
+  box-shadow: 0 30px 100px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(20px);
+}
+
+.cardHeading {
+  margin-bottom: 30px;
+}
+
+.cardHeading h2 {
+  margin: 0 0 10px;
+  font-size: 2rem;
+  font-weight: 580;
+  letter-spacing: -0.04em;
+}
+
+.cardHeading p {
+  margin: 0;
+  color: #869d91;
+}
+
+.form {
+  display: grid;
+  gap: 22px;
+}
+
+.field {
+  display: grid;
+  gap: 8px;
+}
+
+.field label {
+  font-size: 0.84rem;
+  font-weight: 680;
+}
+
+.field input {
+  min-height: 52px;
+  padding: 0 15px;
+  border: 1px solid rgba(209, 255, 231, 0.13);
+  border-radius: 13px;
+  outline: none;
+  background: rgba(255, 255, 255, 0.035);
+  color: #f2fff8;
+  font: inherit;
+}
+
+.field input:focus {
+  border-color: rgba(143, 255, 197, 0.58);
+  box-shadow: 0 0 0 4px rgba(73, 230, 155, 0.08);
+}
+
+.field > span {
+  color: #667c70;
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+.form button {
+  min-height: 52px;
+  margin-top: 4px;
+  border: 1px solid #8fffc5;
+  border-radius: 13px;
+  background: #8fffc5;
+  color: #042015;
+  font: inherit;
+  font-weight: 760;
+  cursor: pointer;
+}
+
+.form button:disabled {
+  opacity: 0.58;
+  cursor: wait;
+}
+
+.error {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 156, 156, 0.22);
+  border-radius: 12px;
+  background: rgba(255, 156, 156, 0.07);
+  color: #ffb7b7;
+  font-size: 0.82rem;
+}
+
+.loading {
+  min-height: 260px;
+  display: grid;
+  place-items: center;
+  color: #9eb8aa;
+}
+
+@media (max-width: 960px) {
+  .content {
+    grid-template-columns: 1fr;
+    padding-top: 70px;
+  }
+
+  .intro {
+    max-width: none;
+  }
+
+  .steps {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .steps article {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 680px) {
+  .page {
+    padding: 0 20px 40px;
+  }
+
+  .header > span {
+    display: none;
+  }
+
+  .content {
+    gap: 44px;
+    padding-top: 54px;
+  }
+
+  .intro h1 {
+    font-size: clamp(2.9rem, 13vw, 4.2rem);
+  }
+
+  .steps {
+    grid-template-columns: 1fr;
+  }
+
+  .steps article {
+    grid-template-columns: 42px 1fr;
+  }
+
+  .card {
+    padding: 26px 22px;
+  }
+}
