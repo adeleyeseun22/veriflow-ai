@@ -7,18 +7,16 @@ from veriflow_api.cache import check_redis
 from veriflow_api.config import settings
 from veriflow_api.database import check_database
 from veriflow_api.schemas import LivenessResponse, ReadinessResponse
+from veriflow_api.services.storage import check_object_storage
+from veriflow_api.worker_health import worker_is_healthy_sync
 
 router = APIRouter()
 
 
 @router.get("/health/live", response_model=LivenessResponse)
 async def liveness() -> LivenessResponse:
-    """Report whether the API process is running."""
-
     return LivenessResponse(
-        status="healthy",
-        service=settings.app_name,
-        version=settings.api_version,
+        status="healthy", service=settings.app_name, version=settings.api_version
     )
 
 
@@ -28,20 +26,27 @@ async def liveness() -> LivenessResponse:
     responses={status.HTTP_503_SERVICE_UNAVAILABLE: {"model": ReadinessResponse}},
 )
 async def readiness() -> ReadinessResponse | JSONResponse:
-    """Verify that the API can reach its required infrastructure."""
-
-    checks: dict[str, str] = {"database": "unhealthy", "redis": "unhealthy"}
-
-    database_result, redis_result = await asyncio.gather(
+    checks: dict[str, str] = {
+        "database": "unhealthy",
+        "redis": "unhealthy",
+        "object_storage": "unhealthy",
+        "document_worker": "unhealthy",
+    }
+    database_result, redis_result, storage_result, worker_result = await asyncio.gather(
         check_database(),
         check_redis(),
+        check_object_storage(),
+        asyncio.to_thread(worker_is_healthy_sync),
         return_exceptions=True,
     )
-
     if not isinstance(database_result, BaseException):
         checks["database"] = "healthy"
     if not isinstance(redis_result, BaseException):
         checks["redis"] = "healthy"
+    if not isinstance(storage_result, BaseException):
+        checks["object_storage"] = "healthy"
+    if worker_result is True:
+        checks["document_worker"] = "healthy"
 
     all_healthy = all(value == "healthy" for value in checks.values())
     payload = ReadinessResponse(
@@ -50,11 +55,8 @@ async def readiness() -> ReadinessResponse | JSONResponse:
         version=settings.api_version,
         checks=checks,  # type: ignore[arg-type]
     )
-
     if all_healthy:
         return payload
-
     return JSONResponse(
-        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-        content=payload.model_dump(),
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE, content=payload.model_dump()
     )

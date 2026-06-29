@@ -10,36 +10,67 @@ type AuthState =
   | { status: "unauthenticated"; user: null; message: null }
   | { status: "error"; user: null; message: string };
 
+const loadingState: AuthState = {
+  status: "loading",
+  user: null,
+  message: null,
+};
+
+async function resolveAuthState(): Promise<AuthState> {
+  try {
+    const user = await getCurrentUser();
+
+    return {
+      status: "authenticated",
+      user,
+      message: null,
+    };
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 401) {
+      return {
+        status: "unauthenticated",
+        user: null,
+        message: null,
+      };
+    }
+
+    return {
+      status: "error",
+      user: null,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Unable to verify your session.",
+    };
+  }
+}
+
 export function useAuth() {
-  const [state, setState] = useState<AuthState>({
-    status: "loading",
-    user: null,
-    message: null,
-  });
+  const [state, setState] = useState<AuthState>(loadingState);
 
   const refresh = useCallback(async () => {
-    setState({ status: "loading", user: null, message: null });
+    setState(loadingState);
 
-    try {
-      const user = await getCurrentUser();
-      setState({ status: "authenticated", user, message: null });
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 401) {
-        setState({ status: "unauthenticated", user: null, message: null });
-        return;
-      }
-
-      setState({
-        status: "error",
-        user: null,
-        message: error instanceof Error ? error.message : "Unable to verify your session.",
-      });
-    }
+    const nextState = await resolveAuthState();
+    setState(nextState);
   }, []);
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    let cancelled = false;
 
-  return { ...state, refresh };
+    void resolveAuthState().then((nextState) => {
+      if (!cancelled) {
+        setState(nextState);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return {
+    ...state,
+    refresh,
+  };
 }

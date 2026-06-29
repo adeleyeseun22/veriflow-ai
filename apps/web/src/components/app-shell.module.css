@@ -182,15 +182,27 @@
   text-transform: capitalize;
 }
 
-.topbarActions button {
+.uploadLink {
   min-height: 40px;
+  display: inline-flex;
+  align-items: center;
   padding: 0 14px;
-  border: 1px solid rgba(209, 255, 231, 0.1);
+  border: 1px solid rgba(143, 255, 197, 0.18);
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.03);
-  color: #6f857a;
-  font: inherit;
+  background: rgba(143, 255, 197, 0.08);
+  color: #caffdf;
   font-size: 0.78rem;
+  font-weight: 680;
+  transition:
+    transform 150ms ease,
+    border-color 150ms ease,
+    background 150ms ease;
+}
+
+.uploadLink:hover {
+  transform: translateY(-1px);
+  border-color: rgba(143, 255, 197, 0.34);
+  background: rgba(143, 255, 197, 0.12);
 }
 
 .content {
@@ -265,7 +277,7 @@
     width: 100%;
   }
 
-  .topbarActions button {
+  .uploadLink {
     display: none;
   }
 
