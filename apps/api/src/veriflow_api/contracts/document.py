@@ -22,6 +22,13 @@ class DocumentResponse(BaseModel):
     status: DocumentStatus
     status_message: str | None
     processing_attempts: int
+    parser_name: str | None
+    parser_version: str | None
+    parsed_at: datetime | None
+    page_count: int
+    section_count: int
+    table_count: int
+    extracted_text_chars: int
     storage_provider: str | None
     storage_bucket: str | None
     storage_key: str | None
@@ -65,3 +72,58 @@ class DocumentProcessingJobResponse(BaseModel):
 
 class DocumentProcessingJobListResponse(BaseModel):
     items: list[DocumentProcessingJobResponse]
+
+
+class DocumentPageResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    page_number: int
+    text_content: str
+    char_count: int
+    word_count: int
+    page_metadata: dict[str, object]
+
+
+class DocumentSectionResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    ordinal: int
+    title: str | None
+    heading_level: int | None
+    section_path: list[str]
+    content: str
+    page_start: int | None
+    page_end: int | None
+    char_count: int
+    word_count: int
+    section_metadata: dict[str, object]
+
+
+class DocumentTableResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    section_id: UUID | None
+    ordinal: int
+    title: str | None
+    source_label: str | None
+    page_number: int | None
+    column_names: list[str]
+    rows: list[list[str]]
+    row_count: int
+    column_count: int
+    is_truncated: bool
+    table_metadata: dict[str, object]
+
+
+class DocumentContentResponse(BaseModel):
+    document: DocumentResponse
+    pages: list[DocumentPageResponse]
+    sections: list[DocumentSectionResponse]
+    tables: list[DocumentTableResponse]
+    returned_page_count: int
+    returned_section_count: int
+    returned_table_count: int
+    table_row_limit: int
