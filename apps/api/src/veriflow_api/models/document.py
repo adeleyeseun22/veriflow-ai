@@ -25,6 +25,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from veriflow_api.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
 if TYPE_CHECKING:
+    from veriflow_api.models.chunk import DocumentChunk
     from veriflow_api.models.parsed_content import DocumentPage, DocumentSection, DocumentTable
     from veriflow_api.models.processing_job import DocumentProcessingJob
     from veriflow_api.models.user import User
@@ -51,6 +52,8 @@ class Document(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         CheckConstraint("section_count >= 0", name="nonnegative_section_count"),
         CheckConstraint("table_count >= 0", name="nonnegative_table_count"),
         CheckConstraint("extracted_text_chars >= 0", name="nonnegative_extracted_text_chars"),
+        CheckConstraint("chunk_count >= 0", name="nonnegative_chunk_count"),
+        CheckConstraint("chunk_token_estimate >= 0", name="nonnegative_chunk_token_estimate"),
         Index("ix_documents_workspace_created_at", "workspace_id", "created_at"),
     )
 
@@ -102,6 +105,15 @@ class Document(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         default=0,
         server_default=text("0"),
     )
+    chunker_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    chunker_version: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    chunked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    chunk_count: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default=text("0")
+    )
+    chunk_token_estimate: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default=text("0")
+    )
     storage_provider: Mapped[str | None] = mapped_column(String(32), nullable=True)
     storage_bucket: Mapped[str | None] = mapped_column(String(255), nullable=True)
     storage_key: Mapped[str | None] = mapped_column(String(1024), nullable=True)
@@ -134,4 +146,10 @@ class Document(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         back_populates="document",
         cascade="all, delete-orphan",
         order_by="DocumentTable.ordinal",
+    )
+    chunks: Mapped[list[DocumentChunk]] = relationship(
+        "DocumentChunk",
+        back_populates="document",
+        cascade="all, delete-orphan",
+        order_by="DocumentChunk.ordinal",
     )

@@ -2,7 +2,7 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from starlette.concurrency import run_in_threadpool
 
 from veriflow_api.api.dependencies.auth import (
@@ -13,12 +13,15 @@ from veriflow_api.api.dependencies.auth import (
 )
 from veriflow_api.config import settings
 from veriflow_api.contracts.document import (
+    DocumentChunkListResponse,
+    DocumentChunkResponse,
     DocumentContentResponse,
     DocumentPageResponse,
     DocumentResponse,
     DocumentSectionResponse,
     DocumentTableResponse,
 )
+from veriflow_api.models.chunk import ChunkSourceType, DocumentChunk
 from veriflow_api.models.document import Document, DocumentStatus
 from veriflow_api.models.parsed_content import DocumentPage, DocumentSection, DocumentTable
 from veriflow_api.models.processing_job import DocumentProcessingJob, ProcessingJobStatus
@@ -132,6 +135,45 @@ async def get_document_content(
         returned_section_count=len(sections),
         returned_table_count=len(tables),
         table_row_limit=table_row_limit,
+    )
+
+
+@router.get("/{document_id}/chunks", response_model=DocumentChunkListResponse)
+async def get_document_chunks(
+    workspace_id: UUID,
+    document_id: UUID,
+    _: WorkspaceReader,
+    session: DatabaseSession,
+    limit: Annotated[int, Query(ge=1, le=500)] = 100,
+    offset: Annotated[int, Query(ge=0)] = 0,
+    source_type: ChunkSourceType | None = None,
+) -> DocumentChunkListResponse:
+    await workspace_document(
+        session,
+        workspace_id=workspace_id,
+        document_id=document_id,
+    )
+
+    filters = [DocumentChunk.document_id == document_id]
+    if source_type is not None:
+        filters.append(DocumentChunk.source_type == source_type)
+
+    total = await session.scalar(select(func.count(DocumentChunk.id)).where(*filters))
+    chunks = (
+        await session.scalars(
+            select(DocumentChunk)
+            .where(*filters)
+            .order_by(DocumentChunk.ordinal)
+            .offset(offset)
+            .limit(limit)
+        )
+    ).all()
+
+    return DocumentChunkListResponse(
+        items=[DocumentChunkResponse.model_validate(chunk) for chunk in chunks],
+        total=total or 0,
+        limit=limit,
+        offset=offset,
     )
 
 

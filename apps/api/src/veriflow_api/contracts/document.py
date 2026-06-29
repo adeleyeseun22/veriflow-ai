@@ -3,6 +3,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from veriflow_api.models.chunk import ChunkSourceType
 from veriflow_api.models.document import DocumentStatus
 from veriflow_api.models.processing_job import ProcessingJobStatus
 
@@ -29,6 +30,11 @@ class DocumentResponse(BaseModel):
     section_count: int
     table_count: int
     extracted_text_chars: int
+    chunker_name: str | None
+    chunker_version: str | None
+    chunked_at: datetime | None
+    chunk_count: int
+    chunk_token_estimate: int
     storage_provider: str | None
     storage_bucket: str | None
     storage_key: str | None
@@ -127,3 +133,34 @@ class DocumentContentResponse(BaseModel):
     returned_section_count: int
     returned_table_count: int
     table_row_limit: int
+
+
+class DocumentChunkResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    document_id: UUID
+    section_id: UUID | None
+    table_id: UUID | None
+    ordinal: int
+    source_type: ChunkSourceType
+    source_label: str | None
+    heading_path: list[str]
+    page_start: int | None
+    page_end: int | None
+    content: str
+    char_count: int
+    word_count: int
+    token_estimate: int
+    overlap_chars: int
+    fingerprint: str
+    chunk_metadata: dict[str, object]
+    created_at: datetime
+    updated_at: datetime
+
+
+class DocumentChunkListResponse(BaseModel):
+    items: list[DocumentChunkResponse]
+    total: int
+    limit: int = Field(ge=1, le=500)
+    offset: int = Field(ge=0)

@@ -21,6 +21,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from veriflow_api.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
 if TYPE_CHECKING:
+    from veriflow_api.models.chunk import DocumentChunk
     from veriflow_api.models.document import Document
 
 
@@ -104,6 +105,10 @@ class DocumentSection(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         "DocumentTable",
         back_populates="section",
     )
+    chunks: Mapped[list[DocumentChunk]] = relationship(
+        "DocumentChunk",
+        back_populates="section",
+    )
 
 
 class DocumentTable(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -170,4 +175,8 @@ class DocumentTable(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     section: Mapped[DocumentSection | None] = relationship(
         "DocumentSection",
         back_populates="tables",
+    )
+    chunks: Mapped[list[DocumentChunk]] = relationship(
+        "DocumentChunk",
+        back_populates="table",
     )

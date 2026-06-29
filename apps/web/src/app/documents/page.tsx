@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   useCallback,
@@ -26,7 +27,6 @@ import styles from "./documents.module.css";
 
 const ACCEPTED_EXTENSIONS = ["pdf", "docx", "xlsx", "csv"];
 const MAX_FILE_SIZE = 25 * 1024 * 1024;
-
 const ACTIVE_STATUSES = new Set([
   "pending",
   "uploaded",
@@ -110,10 +110,8 @@ export default function DocumentsPage() {
 
     let cancelled = false;
 
-    async function loadWorkspaceOptions() {
-      try {
-        const result = await listWorkspaces();
-
+    void listWorkspaces()
+      .then((result) => {
         if (cancelled) {
           return;
         }
@@ -126,7 +124,6 @@ export default function DocumentsPage() {
         const storedWorkspaceId = localStorage.getItem(
           "veriflow_active_workspace",
         );
-
         const selectedWorkspaceId = result.some(
           (workspace) => workspace.id === storedWorkspaceId,
         )
@@ -137,11 +134,11 @@ export default function DocumentsPage() {
           "veriflow_active_workspace",
           selectedWorkspaceId,
         );
-
         setLoadingDocuments(true);
         setWorkspaces(result);
         setActiveWorkspaceId(selectedWorkspaceId);
-      } catch (requestError) {
+      })
+      .catch((requestError: unknown) => {
         if (!cancelled) {
           setError(
             requestError instanceof Error
@@ -149,14 +146,12 @@ export default function DocumentsPage() {
               : "Unable to load workspaces.",
           );
         }
-      } finally {
+      })
+      .finally(() => {
         if (!cancelled) {
           setLoadingWorkspace(false);
         }
-      }
-    }
-
-    void loadWorkspaceOptions();
+      });
 
     return () => {
       cancelled = true;
@@ -247,20 +242,16 @@ export default function DocumentsPage() {
     }
 
     let cancelled = false;
-
     const interval = window.setInterval(() => {
       void fetchWorkspaceDocuments(activeWorkspaceId)
         .then((result) => {
-          if (cancelled) {
-            return;
+          if (!cancelled) {
+            setDocuments(result.items);
+            setTotalDocuments(result.total);
           }
-
-          setDocuments(result.items);
-          setTotalDocuments(result.total);
         })
         .catch(() => {
-          // Background polling failures should not replace the
-          // current document library with an error screen.
+          // Preserve the current library during temporary polling failures.
         });
     }, 2500);
 
@@ -268,11 +259,7 @@ export default function DocumentsPage() {
       cancelled = true;
       window.clearInterval(interval);
     };
-  }, [
-    activeWorkspaceId,
-    fetchWorkspaceDocuments,
-    hasActiveProcessing,
-  ]);
+  }, [activeWorkspaceId, fetchWorkspaceDocuments, hasActiveProcessing]);
 
   const activeWorkspace = useMemo(
     () =>
@@ -287,11 +274,7 @@ export default function DocumentsPage() {
     : false;
 
   function changeWorkspace(workspaceId: string) {
-    localStorage.setItem(
-      "veriflow_active_workspace",
-      workspaceId,
-    );
-
+    localStorage.setItem("veriflow_active_workspace", workspaceId);
     setLoadingDocuments(true);
     setActiveWorkspaceId(workspaceId);
     setDocuments([]);
@@ -380,15 +363,10 @@ export default function DocumentsPage() {
     setSuccess(null);
 
     try {
-      await retryDocumentProcessing(
-        activeWorkspaceId,
-        documentId,
-      );
-
+      await retryDocumentProcessing(activeWorkspaceId, documentId);
       setSuccess(
         "The document was queued for another processing attempt.",
       );
-
       await refreshWorkspaceDocuments(activeWorkspaceId);
     } catch (requestError) {
       setError(
@@ -414,17 +392,10 @@ export default function DocumentsPage() {
   }
 
   if (auth.status === "error") {
-    return (
-      <div className={styles.fullPageState}>
-        {auth.message}
-      </div>
-    );
+    return <div className={styles.fullPageState}>{auth.message}</div>;
   }
 
-  if (
-    auth.status !== "authenticated" ||
-    !activeWorkspace
-  ) {
+  if (auth.status !== "authenticated" || !activeWorkspace) {
     return null;
   }
 
@@ -442,8 +413,8 @@ export default function DocumentsPage() {
             Secure uploads with observable background processing.
           </h1>
           <p>
-            Files are validated, stored privately, queued, verified
-            by a worker, and tracked through a reviewable lifecycle.
+            Files are validated, stored privately, parsed, chunked,
+            and tracked through a reviewable evidence lifecycle.
           </p>
         </div>
 
@@ -460,9 +431,7 @@ export default function DocumentsPage() {
         <article className={styles.uploadCard}>
           <div className={styles.cardHeading}>
             <div>
-              <p className={styles.eyebrow}>
-                Private object storage
-              </p>
+              <p className={styles.eyebrow}>Private object storage</p>
               <h2>Upload a document</h2>
             </div>
           </div>
@@ -470,9 +439,7 @@ export default function DocumentsPage() {
           <div
             className={`${styles.dropZone} ${
               dragActive ? styles.dropZoneActive : ""
-            } ${
-              !canUpload ? styles.dropZoneDisabled : ""
-            }`}
+            } ${!canUpload ? styles.dropZoneDisabled : ""}`}
             onDragEnter={() => setDragActive(true)}
             onDragLeave={() => setDragActive(false)}
             onDragOver={(event) => event.preventDefault()}
@@ -489,9 +456,7 @@ export default function DocumentsPage() {
 
             <div className={styles.uploadIcon}>↑</div>
             <strong>Drop one document here</strong>
-            <p>
-              PDF, DOCX, XLSX, or UTF-8 CSV · maximum 25 MB
-            </p>
+            <p>PDF, DOCX, XLSX, or UTF-8 CSV · maximum 25 MB</p>
             <label htmlFor="document-file">Choose file</label>
           </div>
 
@@ -507,7 +472,6 @@ export default function DocumentsPage() {
                 <span>
                   {fileExtension(selectedFile.name).toUpperCase()}
                 </span>
-
                 <div>
                   <strong>{selectedFile.name}</strong>
                   <small>{formatBytes(selectedFile.size)}</small>
@@ -536,8 +500,8 @@ export default function DocumentsPage() {
             <span>◇</span>
             <p>
               The API verifies the internal format and SHA-256
-              fingerprint before the worker independently checks
-              the stored object.
+              fingerprint before the worker parses and chunks the
+              stored object.
             </p>
           </div>
         </article>
@@ -553,16 +517,14 @@ export default function DocumentsPage() {
           </div>
 
           {loadingDocuments ? (
-            <div className={styles.emptyState}>
-              Loading documents…
-            </div>
+            <div className={styles.emptyState}>Loading documents…</div>
           ) : documents.length === 0 ? (
             <div className={styles.emptyState}>
               <div>□</div>
               <strong>No documents yet</strong>
               <p>
-                Upload the first file to establish this
-                workspace&apos;s evidence library.
+                Upload the first file to establish this workspace&apos;s
+                evidence library.
               </p>
             </div>
           ) : (
@@ -572,12 +534,8 @@ export default function DocumentsPage() {
                   key={document.id}
                   document={document}
                   canRetry={canUpload}
-                  retrying={
-                    retryingDocumentId === document.id
-                  }
-                  onRetry={() =>
-                    void retryProcessing(document.id)
-                  }
+                  retrying={retryingDocumentId === document.id}
+                  onRetry={() => void retryProcessing(document.id)}
                 />
               ))}
             </div>
@@ -612,6 +570,7 @@ function DocumentItem({
         <div>
           <span>{formatBytes(document.size_bytes)}</span>
           <span>{formatDate(document.created_at)}</span>
+          <span>{document.chunk_count} chunks</span>
           <code>{document.sha256.slice(0, 10)}…</code>
         </div>
 
@@ -637,6 +596,13 @@ function DocumentItem({
             {document.processing_attempts === 1 ? "" : "s"}
           </small>
         )}
+
+        <Link
+          className={styles.inspectLink}
+          href={`/documents/${document.id}`}
+        >
+          Inspect
+        </Link>
 
         {document.status === "failed" && canRetry && (
           <button

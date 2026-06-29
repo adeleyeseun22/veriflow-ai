@@ -15,6 +15,7 @@ from veriflow_api.models.document import Document, DocumentStatus
 from veriflow_api.models.processing_job import DocumentProcessingJob, ProcessingJobStatus
 from veriflow_api.parsers import ParserError, parse_document
 from veriflow_api.services.audit import record_audit_event
+from veriflow_api.services.chunking import build_document_chunks, replace_document_chunks
 from veriflow_api.services.storage import ObjectStorageError, object_storage
 from veriflow_api.services.structured_ingestion import replace_structured_content
 
@@ -104,14 +105,25 @@ async def run_document_processing(job_id: UUID, celery_task_id: str | None) -> N
                 ) from error
 
             completed_at = datetime.now(UTC)
-            await replace_structured_content(
+            stored_content = await replace_structured_content(
                 session,
                 document=document,
                 parsed=parsed,
                 parsed_at=completed_at,
             )
+            generated_chunks = build_document_chunks(
+                pages=stored_content.pages,
+                sections=stored_content.sections,
+                tables=stored_content.tables,
+            )
+            await replace_document_chunks(
+                session,
+                document=document,
+                chunks=generated_chunks,
+                chunked_at=completed_at,
+            )
             document.status = DocumentStatus.READY
-            document.status_message = "Structured content extracted and ready for chunking."
+            document.status_message = "Structured content extracted and chunked for retrieval."
             document.processed_at = completed_at
             job.status = ProcessingJobStatus.SUCCEEDED
             job.completed_at = completed_at
@@ -125,6 +137,8 @@ async def run_document_processing(job_id: UUID, celery_task_id: str | None) -> N
                 "section_count": len(parsed.sections),
                 "table_count": len(parsed.tables),
                 "extracted_text_chars": parsed.extracted_text_chars,
+                "chunk_count": len(generated_chunks),
+                "chunk_token_estimate": sum(chunk.token_estimate for chunk in generated_chunks),
             }
             record_audit_event(
                 session,
@@ -140,6 +154,7 @@ async def run_document_processing(job_id: UUID, celery_task_id: str | None) -> N
                     "page_count": len(parsed.pages),
                     "section_count": len(parsed.sections),
                     "table_count": len(parsed.tables),
+                    "chunk_count": len(generated_chunks),
                 },
             )
             await session.commit()

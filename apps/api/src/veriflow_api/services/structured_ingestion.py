@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime
 
 from sqlalchemy import delete
@@ -10,13 +11,20 @@ from veriflow_api.models.parsed_content import DocumentPage, DocumentSection, Do
 from veriflow_api.parsers.base import ParsedDocument
 
 
+@dataclass(slots=True)
+class StoredStructuredContent:
+    pages: list[DocumentPage]
+    sections: list[DocumentSection]
+    tables: list[DocumentTable]
+
+
 async def replace_structured_content(
     session: AsyncSession,
     *,
     document: Document,
     parsed: ParsedDocument,
     parsed_at: datetime,
-) -> None:
+) -> StoredStructuredContent:
     """Replace a document's extracted structure in one database transaction."""
 
     await session.execute(delete(DocumentTable).where(DocumentTable.document_id == document.id))
@@ -78,6 +86,7 @@ async def replace_structured_content(
         for table in parsed.tables
     ]
     session.add_all(table_models)
+    await session.flush()
 
     metadata = dict(document.document_metadata)
     metadata["structured_ingestion"] = {
@@ -98,3 +107,9 @@ async def replace_structured_content(
     document.section_count = len(parsed.sections)
     document.table_count = len(parsed.tables)
     document.extracted_text_chars = parsed.extracted_text_chars
+
+    return StoredStructuredContent(
+        pages=page_models,
+        sections=section_models,
+        tables=table_models,
+    )
