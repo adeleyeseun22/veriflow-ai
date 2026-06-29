@@ -4,6 +4,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 from veriflow_api.models.document import DocumentStatus
+from veriflow_api.models.processing_job import ProcessingJobStatus
 
 
 class DocumentResponse(BaseModel):
@@ -40,3 +41,27 @@ class DocumentListResponse(BaseModel):
 class DuplicateDocumentResponse(BaseModel):
     duplicate: bool
     document: DocumentResponse | None = None
+
+
+class DocumentProcessingJobResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    document_id: UUID
+    requested_by_id: UUID
+    celery_task_id: str | None
+    job_type: str
+    status: ProcessingJobStatus
+    attempts: int
+    max_attempts: int
+    queued_at: datetime
+    started_at: datetime | None
+    completed_at: datetime | None
+    last_error: str | None
+    details: dict[str, object]
+    created_at: datetime
+    updated_at: datetime
+
+
+class DocumentProcessingJobListResponse(BaseModel):
+    items: list[DocumentProcessingJobResponse]

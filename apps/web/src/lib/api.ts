@@ -70,6 +70,35 @@ export type DocumentRecord = {
   updated_at: string;
 };
 
+export type ProcessingJobStatus =
+  | "queued"
+  | "processing"
+  | "retrying"
+  | "succeeded"
+  | "failed";
+
+export type DocumentProcessingJob = {
+  id: string;
+  document_id: string;
+  requested_by_id: string;
+  celery_task_id: string | null;
+  job_type: string;
+  status: ProcessingJobStatus;
+  attempts: number;
+  max_attempts: number;
+  queued_at: string;
+  started_at: string | null;
+  completed_at: string | null;
+  last_error: string | null;
+  details: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+};
+
+export type DocumentProcessingJobListResponse = {
+  items: DocumentProcessingJob[];
+};
+
 export type DocumentListResponse = {
   items: DocumentRecord[];
   total: number;
@@ -276,5 +305,26 @@ export async function uploadDocument(
       body,
     },
     true,
+  );
+}
+
+
+export async function retryDocumentProcessing(
+  workspaceId: string,
+  documentId: string,
+): Promise<DocumentRecord> {
+  return apiRequest<DocumentRecord>(
+    `/api/v1/workspaces/${workspaceId}/documents/${documentId}/retry`,
+    { method: "POST" },
+    true,
+  );
+}
+
+export async function listDocumentProcessingJobs(
+  workspaceId: string,
+  documentId: string,
+): Promise<DocumentProcessingJobListResponse> {
+  return apiRequest<DocumentProcessingJobListResponse>(
+    `/api/v1/workspaces/${workspaceId}/documents/${documentId}/jobs`,
   );
 }

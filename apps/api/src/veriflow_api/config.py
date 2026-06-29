@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     app_name: str = "VeriFlow AI API"
     app_env: str = "development"
     debug: bool = True
-    api_version: str = "0.5.0"
+    api_version: str = "0.6.0"
     api_v1_prefix: str = "/api/v1"
 
     database_url: str = (
@@ -40,6 +40,14 @@ class Settings(BaseSettings):
     minio_secure: bool = False
     minio_bucket: str = "veriflow-documents"
     max_upload_size_bytes: int = 25 * 1024 * 1024
+
+    celery_broker_url: str = "redis://localhost:6379/1"
+    celery_result_backend: str = "redis://localhost:6379/2"
+    celery_queue_name: str = "document-processing"
+    processing_max_retries: int = 3
+    processing_retry_base_seconds: int = 5
+    worker_heartbeat_key: str = "veriflow:workers:document-processing"
+    worker_heartbeat_ttl_seconds: int = 90
 
 
 @lru_cache

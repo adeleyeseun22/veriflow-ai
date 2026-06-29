@@ -26,7 +26,7 @@ class ObjectStorage:
     async def check_connection(self) -> None:
         try:
             await run_in_threadpool(self.client.list_buckets)
-        except Exception as error:  # MinIO may surface urllib3 errors as well as S3Error.
+        except Exception as error:
             raise ObjectStorageError("Object storage is unavailable.") from error
 
     async def ensure_bucket(self) -> None:
@@ -40,15 +40,8 @@ class ObjectStorage:
         except Exception as error:
             raise ObjectStorageError("Unable to prepare the document bucket.") from error
 
-    async def upload_file(
-        self,
-        *,
-        source_path: Path,
-        object_name: str,
-        content_type: str,
-    ) -> None:
+    async def upload_file(self, *, source_path: Path, object_name: str, content_type: str) -> None:
         await self.ensure_bucket()
-
         try:
             await run_in_threadpool(
                 self.client.fput_object,
@@ -59,6 +52,17 @@ class ObjectStorage:
             )
         except Exception as error:
             raise ObjectStorageError("Unable to store the uploaded document.") from error
+
+    async def download_file(self, *, object_name: str, destination_path: Path) -> None:
+        try:
+            await run_in_threadpool(
+                self.client.fget_object,
+                settings.minio_bucket,
+                object_name,
+                str(destination_path),
+            )
+        except Exception as error:
+            raise ObjectStorageError("Unable to retrieve the stored document.") from error
 
     async def delete_object(self, object_name: str) -> None:
         try:

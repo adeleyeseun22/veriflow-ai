@@ -11,6 +11,7 @@ if TYPE_CHECKING:
     from veriflow_api.models.audit_log import AuditLog
     from veriflow_api.models.document import Document
     from veriflow_api.models.organization import Organization
+    from veriflow_api.models.processing_job import DocumentProcessingJob
     from veriflow_api.models.workspace import Workspace, WorkspaceMembership
 
 
@@ -46,5 +47,10 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         "Document",
         back_populates="uploaded_by",
         foreign_keys="Document.uploaded_by_id",
+    )
+    processing_jobs_requested: Mapped[list[DocumentProcessingJob]] = relationship(
+        "DocumentProcessingJob",
+        back_populates="requested_by",
+        foreign_keys="DocumentProcessingJob.requested_by_id",
     )
     audit_logs: Mapped[list[AuditLog]] = relationship("AuditLog", back_populates="actor")
