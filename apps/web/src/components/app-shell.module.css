@@ -1,0 +1,275 @@
+.shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 274px minmax(0, 1fr);
+  background: #07100d;
+  color: #f2fff8;
+}
+
+.sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 28px 22px 22px;
+  border-right: 1px solid rgba(209, 255, 231, 0.1);
+  background: #091510;
+}
+
+.sidebarTop {
+  display: grid;
+  gap: 48px;
+}
+
+.navigation {
+  display: grid;
+  gap: 7px;
+}
+
+.navigation a,
+.navigation button {
+  width: 100%;
+  min-height: 46px;
+  display: grid;
+  grid-template-columns: 26px 1fr auto;
+  align-items: center;
+  gap: 9px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  background: transparent;
+  color: #82988d;
+  font: inherit;
+  font-size: 0.84rem;
+  text-align: left;
+}
+
+.navigation a > span,
+.navigation button > span {
+  color: #8fffc5;
+  font-size: 1rem;
+}
+
+.navigation small {
+  color: #50655b;
+  font-size: 0.62rem;
+}
+
+.navigation .activeLink {
+  border-color: rgba(143, 255, 197, 0.13);
+  background: rgba(143, 255, 197, 0.07);
+  color: #eafff3;
+}
+
+.navigation button:disabled {
+  cursor: default;
+  opacity: 0.65;
+}
+
+.sidebarFooter {
+  display: grid;
+  gap: 14px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(209, 255, 231, 0.09);
+}
+
+.identity {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  align-items: center;
+  gap: 11px;
+}
+
+.identity > span {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: rgba(143, 255, 197, 0.1);
+  color: #8fffc5;
+  font-size: 0.75rem;
+  font-weight: 760;
+}
+
+.identity div {
+  min-width: 0;
+}
+
+.identity strong,
+.identity small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.identity strong {
+  margin-bottom: 3px;
+  font-size: 0.8rem;
+}
+
+.identity small {
+  color: #71877c;
+  font-size: 0.69rem;
+}
+
+.sidebarFooter > button {
+  min-height: 40px;
+  border: 1px solid rgba(209, 255, 231, 0.1);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.025);
+  color: #99afa3;
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.workspaceArea {
+  min-width: 0;
+}
+
+.topbar {
+  min-height: 84px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  padding: 0 38px;
+  border-bottom: 1px solid rgba(209, 255, 231, 0.1);
+  background: rgba(7, 16, 13, 0.86);
+  backdrop-filter: blur(20px);
+}
+
+.topbar > div:first-child {
+  display: grid;
+  gap: 5px;
+}
+
+.topbar > div:first-child > span {
+  color: #667c70;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.topbar select {
+  min-width: 280px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #eafff3;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 680;
+}
+
+.topbarActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.roleBadge {
+  padding: 7px 10px;
+  border: 1px solid rgba(143, 255, 197, 0.16);
+  border-radius: 999px;
+  background: rgba(143, 255, 197, 0.06);
+  color: #9fffc9;
+  font-size: 0.68rem;
+  text-transform: capitalize;
+}
+
+.topbarActions button {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid rgba(209, 255, 231, 0.1);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #6f857a;
+  font: inherit;
+  font-size: 0.78rem;
+}
+
+.content {
+  padding: 38px;
+}
+
+@media (max-width: 900px) {
+  .shell {
+    grid-template-columns: 86px minmax(0, 1fr);
+  }
+
+  .sidebar {
+    padding: 24px 15px;
+  }
+
+  .sidebarTop > a span:last-child,
+  .navigation a:not(.activeLink),
+  .navigation button,
+  .identity div,
+  .sidebarFooter > button {
+    display: none;
+  }
+
+  .navigation .activeLink {
+    grid-template-columns: 1fr;
+    place-items: center;
+  }
+
+  .navigation .activeLink > span {
+    font-size: 1.2rem;
+  }
+
+  .identity {
+    grid-template-columns: 1fr;
+    place-items: center;
+  }
+}
+
+@media (max-width: 650px) {
+  .shell {
+    display: block;
+  }
+
+  .sidebar {
+    position: static;
+    width: 100%;
+    height: auto;
+    flex-direction: row;
+    align-items: center;
+    padding: 16px 20px;
+    border-right: 0;
+    border-bottom: 1px solid rgba(209, 255, 231, 0.1);
+  }
+
+  .sidebarTop {
+    display: block;
+  }
+
+  .navigation,
+  .sidebarFooter {
+    display: none;
+  }
+
+  .topbar {
+    min-height: auto;
+    align-items: flex-start;
+    padding: 20px;
+  }
+
+  .topbar select {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .topbarActions button {
+    display: none;
+  }
+
+  .content {
+    padding: 26px 20px 40px;
+  }
+}

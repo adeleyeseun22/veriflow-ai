@@ -1,21 +1,27 @@
-from fastapi.testclient import TestClient
+from httpx import ASGITransport, AsyncClient
 
+from veriflow_api.config import settings
 from veriflow_api.main import app
 
 
-def test_service_info() -> None:
-    with TestClient(app) as client:
-        response = client.get("/")
+async def test_service_info() -> None:
+    transport = ASGITransport(app=app)
+
+    async with AsyncClient(transport=transport, base_url="http://testserver") as client:
+        response = await client.get("/")
 
     assert response.status_code == 200
     body = response.json()
-    assert body["name"] == "VeriFlow AI API"
-    assert body["version"] == "0.1.0"
+    assert body["name"] == settings.app_name
+    assert body["version"] == settings.api_version
+    assert body["environment"] == settings.app_env
 
 
-def test_liveness() -> None:
-    with TestClient(app) as client:
-        response = client.get("/health/live")
+async def test_liveness() -> None:
+    transport = ASGITransport(app=app)
+
+    async with AsyncClient(transport=transport, base_url="http://testserver") as client:
+        response = await client.get("/health/live")
 
     assert response.status_code == 200
     assert response.json()["status"] == "healthy"
